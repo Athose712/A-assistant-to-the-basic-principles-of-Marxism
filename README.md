@@ -1,1 +1,0 @@
-# A-assistant-to-the-basic-principles-of-Marxism
