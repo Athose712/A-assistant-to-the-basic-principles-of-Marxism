@@ -1,5 +1,5 @@
 
-# A-assistant-to-thr-basic-principles-of-Marxism
+# An-assistant-to-thr-basic-principles-of-Marxism
 
 ## 环境的配置
 使用pip安装requirements中所需要的包（conda可能出现不兼容的问题），同时pyhon版本建议在3.10以上
