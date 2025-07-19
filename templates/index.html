@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>思政智能助手</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div id="chat-container">
+        <div id="chat-box"></div>
+        <div id="input-container">
+            <input type="text" id="user-input" placeholder="请输入您的问题或指令...">
+            <button id="send-btn">发送</button>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- 锁定版本，避免 mermaid 与 mindmap 插件版本不一致导致渲染失败 -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.0/dist/mermaid.min.js"></script>
+    <!-- mindmap 图需要额外插件（与 mermaid 主版本保持一致）-->
+    <script src="https://cdn.jsdelivr.net/npm/@mermaid-js/mermaid-mindmap@10.9.0/dist/mermaid-mindmap.min.js"></script>
+    <script src="/static/script.js"></script>
+</body>
+</html> 
