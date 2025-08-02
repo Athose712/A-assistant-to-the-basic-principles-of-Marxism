@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎓 与历史思想家对话 - 马克思主义智慧殿堂</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-bg: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            --secondary-bg: rgba(25, 25, 46, 0.95);
+            --accent-gold: #d4af37;
+            --accent-bronze: #cd7f32;
+            --text-light: #f5f5dc;
+            --text-dark: #2c2c2c;
+            --message-user: linear-gradient(135deg, #4a4a6a 0%, #6a6a8a 100%);
+            --message-ai: linear-gradient(135deg, #8b4513 0%, #a0522d 100%);
+            --shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Crimson Text', serif;
+            background: var(--primary-bg);
+            color: var(--text-light);
+            min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* 背景装饰 */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                radial-gradient(circle at 20% 80%, rgba(212, 175, 55, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(205, 127, 50, 0.1) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* 头部标题 */
+        .header {
+            text-align: center;
+            padding: 30px 0;
+            border-bottom: 2px solid var(--accent-gold);
+            margin-bottom: 30px;
+            position: relative;
+        }
+
+        .header::before {
+            content: '📚';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 2rem;
+        }
+
+        .header::after {
+            content: '✒️';
+            position: absolute;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 2rem;
+        }
+
+        .header h1 {
+            font-family: 'Cinzel', serif;
+            font-size: 2.5rem;
+            color: var(--accent-gold);
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            color: var(--text-light);
+            font-style: italic;
+        }
+
+        /* 状态显示区 */
+        .status-bar {
+            background: var(--secondary-bg);
+            border-radius: 15px;
+            padding: 15px 25px;
+            margin-bottom: 20px;
+            border: 2px solid var(--accent-bronze);
+            box-shadow: var(--shadow);
+            display: none;
+        }
+
+        .status-bar.active {
+            display: block;
+        }
+
+        .status-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+        }
+
+        .status-item .label {
+            color: var(--accent-gold);
+        }
+
+        .status-item .value {
+            color: var(--text-light);
+        }
+
+        /* 聊天区域 */
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--secondary-bg);
+            border-radius: 20px;
+            border: 2px solid var(--accent-bronze);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 25px;
+            overflow-y: auto;
+            max-height: 500px;
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        .message {
+            margin-bottom: 20px;
+            animation: messageSlide 0.5s ease-out;
+        }
+
+        @keyframes messageSlide {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message-bubble {
+            max-width: 80%;
+            padding: 18px 25px;
+            border-radius: 20px;
+            position: relative;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            line-height: 1.6;
+            font-size: 1.1rem;
+        }
+
+        .user-message {
+            margin-left: auto;
+            background: var(--message-user);
+            border-bottom-right-radius: 5px;
+        }
+
+        .user-message::before {
+            content: '🤔 您';
+            position: absolute;
+            top: -25px;
+            right: 10px;
+            font-size: 0.9rem;
+            color: var(--accent-gold);
+            font-weight: 600;
+        }
+
+        .ai-message {
+            margin-right: auto;
+            background: var(--message-ai);
+            border-bottom-left-radius: 5px;
+            border-left: 4px solid var(--accent-gold);
+        }
+
+        .ai-message::before {
+            position: absolute;
+            top: -25px;
+            left: 10px;
+            font-size: 0.9rem;
+            color: var(--accent-gold);
+            font-weight: 600;
+        }
+
+        /* 输入区域 */
+        .input-container {
+            padding: 25px;
+            background: rgba(0, 0, 0, 0.3);
+            border-top: 2px solid var(--accent-bronze);
+        }
+
+        .input-wrapper {
+            display: flex;
+            gap: 15px;
+            align-items: flex-end;
+        }
+
+        .input-field {
+            flex: 1;
+            min-height: 60px;
+            padding: 15px 20px;
+            border: 2px solid var(--accent-bronze);
+            border-radius: 15px;
+            background: var(--secondary-bg);
+            color: var(--text-light);
+            font-family: 'Crimson Text', serif;
+            font-size: 1.1rem;
+            resize: vertical;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .input-field:focus {
+            border-color: var(--accent-gold);
+            box-shadow: 0 0 15px rgba(212, 175, 55, 0.3);
+        }
+
+        .input-field::placeholder {
+            color: rgba(245, 245, 220, 0.6);
+            font-style: italic;
+        }
+
+        .send-button {
+            padding: 15px 30px;
+            background: linear-gradient(135deg, var(--accent-gold) 0%, var(--accent-bronze) 100%);
+            color: var(--text-dark);
+            border: none;
+            border-radius: 15px;
+            font-family: 'Cinzel', serif;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
+            min-width: 120px;
+        }
+
+        .send-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(212, 175, 55, 0.4);
+        }
+
+        .send-button:active {
+            transform: translateY(0);
+        }
+
+        .send-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* 控制按钮 */
+        .control-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .control-btn {
+            padding: 10px 20px;
+            background: transparent;
+            color: var(--accent-gold);
+            border: 2px solid var(--accent-gold);
+            border-radius: 10px;
+            font-family: 'Crimson Text', serif;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .control-btn:hover {
+            background: var(--accent-gold);
+            color: var(--text-dark);
+        }
+
+        /* 加载动画 */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: var(--accent-gold);
+            font-style: italic;
+        }
+
+        .loading::after {
+            content: '';
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--accent-gold);
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .message-bubble {
+                max-width: 95%;
+                padding: 15px 20px;
+                font-size: 1rem;
+            }
+
+            .input-wrapper {
+                flex-direction: column;
+            }
+
+            .send-button {
+                align-self: stretch;
+            }
+        }
+
+        /* 启动提示 */
+        .welcome-message {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-light);
+            font-size: 1.2rem;
+            line-height: 1.8;
+        }
+
+        .welcome-message .emoji {
+            font-size: 2rem;
+            margin: 10px;
+        }
+        /* 背景人物画像样式 */
+        .portrait {
+            position: fixed;
+            top: 50%;
+            transform: translateY(-50%);
+            opacity: 0.12;
+            pointer-events: none;
+            filter: grayscale(100%);
+            z-index: 0;
+        }
+        .marx-portrait {
+            left: 2%;
+            max-width: 320px;
+        }
+        .engels-portrait {
+            right: 2%;
+            max-width: 320px;
+        }
+        /* 返回主页按钮定位 */
+        .back-button {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <!-- 背景人物画像 -->
+    <img class="portrait marx-portrait" src="/static/img/marx_1.jpg" alt="Karl Marx">
+    <img class="portrait engels-portrait" src="/static/img/engels_1.jpg" alt="Friedrich Engels">
+
+    <!-- 返回主页按钮 -->
+    <a href="/" class="send-button back-button">🔙 返回主页</a>
+    <div class="container">
+        <div class="header">
+            <h1>🎓 与历史思想家对话</h1>
+            <p>穿越时空，与马克思、恩格斯等伟大思想家进行苏格拉底式深度对话</p>
+        </div>
+
+        <div class="status-bar" id="statusBar">
+            <div class="status-info">
+                <div class="status-item">
+                    <span class="label">对话伙伴:</span>
+                    <span class="value" id="currentCharacter">等待中...</span>
+                </div>
+                <div class="status-item">
+                    <span class="label">探讨主题:</span>
+                    <span class="value" id="currentTopic">等待中...</span>
+                </div>
+                <div class="status-item">
+                    <span class="label">对话轮次:</span>
+                    <span class="value" id="turnCount">0</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="chat-container">
+            <div class="chat-messages" id="chatMessages">
+                <div class="welcome-message">
+                    <div class="emoji">📖✨🎭</div>
+                    <p>欢迎来到思想的殿堂！</p>
+                    <p>在这里，您可以与马克思、恩格斯等历史上的伟大思想家进行深度对话。</p>
+                    <p>请描述您想探讨的话题和希望对话的历史人物，开始一场跨越时空的智慧交流。</p>
+                </div>
+            </div>
+
+            <div class="loading" id="loading">
+                <span id="loadingText">思想家正在深思中...</span>
+            </div>
+
+            <div class="input-container">
+                <div class="input-wrapper">
+                    <textarea 
+                        id="messageInput" 
+                        class="input-field" 
+                        placeholder="例如：我想和马克思探讨一下唯物辩证法，或者让恩格斯谈谈历史唯物主义..."
+                        rows="3"
+                    ></textarea>
+                    <button id="sendButton" class="send-button">
+                        📝 开始对话
+                    </button>
+                </div>
+                <div class="control-buttons">
+                    <button id="newDialogueBtn" class="control-btn">🔄 新对话</button>
+                    <button id="endDialogueBtn" class="control-btn" style="display: none;">👋 结束对话</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class HistoricalDialogueApp {
+            constructor() {
+                this.sessionId = null;
+                this.isDialogueActive = false;
+                this.initializeElements();
+                this.bindEvents();
+            }
+
+            initializeElements() {
+                this.chatMessages = document.getElementById('chatMessages');
+                this.messageInput = document.getElementById('messageInput');
+                this.sendButton = document.getElementById('sendButton');
+                this.loading = document.getElementById('loading');
+                this.statusBar = document.getElementById('statusBar');
+                this.currentCharacter = document.getElementById('currentCharacter');
+                this.currentTopic = document.getElementById('currentTopic');
+                this.turnCount = document.getElementById('turnCount');
+                this.newDialogueBtn = document.getElementById('newDialogueBtn');
+                this.endDialogueBtn = document.getElementById('endDialogueBtn');
+                this.loadingText = document.getElementById('loadingText');
+            }
+
+            bindEvents() {
+                this.sendButton.addEventListener('click', () => this.handleSendMessage());
+                this.messageInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        this.handleSendMessage();
+                    }
+                });
+                this.newDialogueBtn.addEventListener('click', () => this.startNewDialogue());
+                this.endDialogueBtn.addEventListener('click', () => this.endDialogue());
+            }
+
+            async handleSendMessage() {
+                const message = this.messageInput.value.trim();
+                if (!message) return;
+
+                this.addUserMessage(message);
+                this.messageInput.value = '';
+                this.showLoading(true);
+                this.sendButton.disabled = true;
+
+                try {
+                    if (!this.isDialogueActive) {
+                        await this.startDialogue(message);
+                    } else {
+                        await this.continueDialogue(message);
+                    }
+                } catch (error) {
+                    this.addErrorMessage(`对话出现错误：${error.message}`);
+                } finally {
+                    this.showLoading(false);
+                    this.sendButton.disabled = false;
+                }
+            }
+
+            async startDialogue(message) {
+                const response = await fetch('/start_dialogue', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || '启动对话失败');
+                }
+
+                const data = await response.json();
+                this.sessionId = data.session_id;
+                this.isDialogueActive = true;
+                
+                this.updateStatus(data.character, data.topic, data.turn_count);
+                this.addAIMessage(data.response, data.character);
+                this.updateUIForActiveDialogue();
+            }
+
+            async continueDialogue(message) {
+                const response = await fetch('/continue_dialogue', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        session_id: this.sessionId,
+                        message 
+                    })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || '继续对话失败');
+                }
+
+                const data = await response.json();
+                this.updateStatus(data.character, data.topic, data.turn_count);
+                this.addAIMessage(data.response, data.character);
+            }
+
+            updateStatus(character, topic, turnCount) {
+                this.currentCharacter.textContent = character;
+                this.currentTopic.textContent = topic;
+                this.turnCount.textContent = turnCount;
+                this.statusBar.classList.add('active');
+            }
+
+            updateUIForActiveDialogue() {
+                this.sendButton.innerHTML = '💬 继续对话';
+                this.messageInput.placeholder = '请分享您的思考或提出新的问题...';
+                this.newDialogueBtn.style.display = 'inline-block';
+                this.endDialogueBtn.style.display = 'inline-block';
+            }
+
+            addUserMessage(message) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'message';
+                messageDiv.innerHTML = `
+                    <div class="message-bubble user-message">
+                        ${this.formatMessage(message)}
+                    </div>
+                `;
+                this.chatMessages.appendChild(messageDiv);
+                this.scrollToBottom();
+            }
+
+            addAIMessage(message, character) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'message';
+                
+                const characterEmoji = this.getCharacterEmoji(character);
+                messageDiv.innerHTML = `
+                    <div class="message-bubble ai-message" style="--character-name: '${characterEmoji} ${character}';">
+                        ${this.formatMessage(message)}
+                    </div>
+                `;
+                
+                // 更新CSS自定义属性来显示角色名
+                const aiMessage = messageDiv.querySelector('.ai-message');
+                aiMessage.style.setProperty('--character-name', `'${characterEmoji} ${character}'`);
+                
+                this.chatMessages.appendChild(messageDiv);
+                this.scrollToBottom();
+            }
+
+            addErrorMessage(message) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'message';
+                messageDiv.innerHTML = `
+                    <div class="message-bubble ai-message" style="background: linear-gradient(135deg, #8b0000 0%, #a52a2a 100%);">
+                        ❌ ${this.formatMessage(message)}
+                    </div>
+                `;
+                this.chatMessages.appendChild(messageDiv);
+                this.scrollToBottom();
+            }
+
+            getCharacterEmoji(character) {
+                const emojiMap = {
+                    '马克思': '🧔',
+                    '恩格斯': '👨‍🎓',
+                    '列宁': '👨‍💼',
+                    '毛泽东': '👨‍🏫'
+                };
+                return emojiMap[character] || '🎭';
+            }
+
+            formatMessage(message) {
+                return message.replace(/\n/g, '<br>');
+            }
+
+            showLoading(show) {
+                if (show) {
+                    const loadingTexts = [
+                        '思想家正在深思中...',
+                        '正在整理哲学思路...',
+                        '准备苏格拉底式提问...',
+                        '查阅理论典籍中...'
+                    ];
+                    this.loadingText.textContent = loadingTexts[Math.floor(Math.random() * loadingTexts.length)];
+                }
+                this.loading.style.display = show ? 'block' : 'none';
+            }
+
+            scrollToBottom() {
+                setTimeout(() => {
+                    this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
+                }, 100);
+            }
+
+            async startNewDialogue() {
+                await this.endDialogue();
+                this.clearChat();
+                this.resetUI();
+            }
+
+            async endDialogue() {
+                if (this.sessionId) {
+                    try {
+                        await fetch('/end_dialogue', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ session_id: this.sessionId })
+                        });
+                    } catch (error) {
+                        console.error('结束对话请求失败:', error);
+                    }
+                }
+                
+                this.sessionId = null;
+                this.isDialogueActive = false;
+                this.addAIMessage('感谢您的参与！希望这次思想之旅对您有所启发。期待下次再会！', '系统');
+            }
+
+            clearChat() {
+                this.chatMessages.innerHTML = `
+                    <div class="welcome-message">
+                        <div class="emoji">📖✨🎭</div>
+                        <p>开始新的思想之旅！</p>
+                        <p>请描述您想探讨的新话题和希望对话的历史人物。</p>
+                        <div class="emoji">💭🌟📚</div>
+                    </div>
+                `;
+            }
+
+            resetUI() {
+                this.statusBar.classList.remove('active');
+                this.sendButton.innerHTML = '📝 开始对话';
+                this.messageInput.placeholder = '例如：我想和马克思探讨一下唯物辩证法，或者让恩格斯谈谈历史唯物主义...';
+                this.newDialogueBtn.style.display = 'inline-block';
+                this.endDialogueBtn.style.display = 'none';
+            }
+        }
+
+        // 添加CSS规则来显示角色名
+        const style = document.createElement('style');
+        style.textContent = `
+            .ai-message::before {
+                content: var(--character-name, '🎭 AI');
+            }
+        `;
+        document.head.appendChild(style);
+
+        // 初始化应用
+        document.addEventListener('DOMContentLoaded', () => {
+            new HistoricalDialogueApp();
+        });
+    </script>
+</body>
+</html> 

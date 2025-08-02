@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>马克思主义基本原理智能学习伙伴 - 模式选择</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        .mode-buttons {
+            display: flex;
+            gap: 40px;
+            justify-content: center;
+            margin-top: 80px;
+        }
+        .mode-btn {
+            display: inline-block;
+            padding: 25px 40px;
+            border-radius: 20px;
+            background: linear-gradient(135deg, var(--accent-gold) 0%, var(--accent-bronze) 100%);
+            color: var(--text-dark);
+            font-family: 'Cinzel', serif;
+            font-size: 1.3rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
+        }
+        .mode-btn:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 6px 20px rgba(212, 175, 55, 0.5);
+        }
+        /* 背景画像样式 */
+        .portrait {
+            position: fixed;
+            top: 50%;
+            transform: translateY(-50%);
+            opacity: 0.15;
+            pointer-events: none;
+            filter: grayscale(100%);
+            z-index: 0;
+        }
+        .marx-portrait {
+            left: 2%;
+            max-width: 350px;
+        }
+        .engels-portrait {
+            right: 2%;
+            max-width: 350px;
+        }
+        /* 确保内容位于画像之上 */
+        .container {
+            position: relative;
+            z-index: 1;
+        }
+    </style>
+</head>
+<body>
+    <!-- 背景画像 -->
+    <img class="portrait marx-portrait" src="/static/img/marx_1.jpg" alt="Karl Marx">
+    <img class="portrait engels-portrait" src="/static/img/engels_1.jpg" alt="Friedrich Engels">
+    <div class="container">
+        <div class="header">
+            <h1>🎓 马克思主义基本原理智能学习伙伴</h1>
+            <p>请选择您想使用的模式</p>
+        </div>
+        <div class="mode-buttons">
+            <a href="/chat_ui" class="mode-btn">💬 聊天模式</a>
+            <a href="/role" class="mode-btn">🧑‍🏫 角色扮演模式</a>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,289 @@
+:root {
+    --primary-bg: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    --secondary-bg: rgba(25, 25, 46, 0.95);
+    --accent-gold: #d4af37;
+    --accent-bronze: #cd7f32;
+    --text-light: #f5f5dc;
+    --text-dark: #2c2c2c;
+    --message-user: linear-gradient(135deg, #4a4a6a 0%, #6a6a8a 100%);
+    --message-bot: linear-gradient(135deg, #2a52be 0%, #3a63d0 100%); /* New bot message color */
+    --shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Crimson Text', serif;
+    background: var(--primary-bg);
+    color: var(--text-light);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow-x: hidden;
+}
+
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: 
+        radial-gradient(circle at 20% 80%, rgba(212, 175, 55, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(205, 127, 50, 0.1) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: -1;
+}
+
+.container {
+    max-width: 1200px;
+    width: 90%;
+    margin: 0 auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    height: 95vh;
+}
+
+.header {
+    text-align: center;
+    padding: 20px 0;
+    border-bottom: 2px solid var(--accent-gold);
+    margin-bottom: 20px;
+}
+
+.header h1 {
+    font-family: 'Cinzel', serif;
+    font-size: 2.2rem;
+    color: var(--accent-gold);
+    margin-bottom: 10px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.header p {
+    font-size: 1.1rem;
+    color: var(--text-light);
+    font-style: italic;
+}
+
+.chat-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: var(--secondary-bg);
+    border-radius: 20px;
+    border: 2px solid var(--accent-bronze);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+}
+
+.chat-messages {
+    flex: 1;
+    padding: 25px;
+    overflow-y: auto;
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.welcome-message {
+    text-align: center;
+    padding: 40px;
+    color: var(--text-light);
+    font-size: 1.2rem;
+    line-height: 1.8;
+}
+
+.welcome-message .emoji {
+    font-size: 2rem;
+    margin: 10px;
+}
+
+.message {
+    margin-bottom: 25px;
+    animation: messageSlide 0.5s ease-out;
+}
+
+@keyframes messageSlide {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.message-bubble {
+    max-width: 85%;
+    padding: 18px 25px;
+    border-radius: 20px;
+    position: relative;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    line-height: 1.6;
+    font-size: 1.1rem;
+}
+
+.user-message {
+    margin-left: auto;
+    background: var(--message-user);
+    border-bottom-right-radius: 5px;
+}
+
+.bot-message {
+    margin-right: auto;
+    background: var(--message-bot);
+    border-bottom-left-radius: 5px;
+    border-left: 4px solid var(--accent-gold);
+}
+
+.bot-message pre {
+    background-color: #1e1e1e;
+    color: #dcdcaa;
+    padding: 15px;
+    border-radius: 8px;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    border: 1px solid var(--accent-bronze);
+    margin-top: 10px;
+}
+
+.bot-message code {
+    font-family: "Fira Code", "Courier New", monospace;
+    font-size: 0.95em;
+}
+
+.input-container {
+    padding: 25px;
+    background: rgba(0, 0, 0, 0.3);
+    border-top: 2px solid var(--accent-bronze);
+}
+
+.input-wrapper {
+    display: flex;
+    gap: 15px;
+    align-items: flex-end;
+}
+
+.input-field {
+    flex: 1;
+    min-height: 60px;
+    padding: 15px 20px;
+    border: 2px solid var(--accent-bronze);
+    border-radius: 15px;
+    background: var(--secondary-bg);
+    color: var(--text-light);
+    font-family: 'Crimson Text', serif;
+    font-size: 1.1rem;
+    resize: vertical;
+    outline: none;
+    transition: all 0.3s ease;
+}
+
+.input-field:focus {
+    border-color: var(--accent-gold);
+    box-shadow: 0 0 15px rgba(212, 175, 55, 0.3);
+}
+
+.input-field::placeholder {
+    color: rgba(245, 245, 220, 0.6);
+    font-style: italic;
+}
+
+.send-button {
+    padding: 15px 30px;
+    background: linear-gradient(135deg, var(--accent-gold) 0%, var(--accent-bronze) 100%);
+    color: var(--text-dark);
+    border: none;
+    border-radius: 15px;
+    font-family: 'Cinzel', serif;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
+    min-width: 120px;
+    align-self: flex-end;
+}
+
+.send-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(212, 175, 55, 0.4);
+}
+
+.send-button:active {
+    transform: translateY(0);
+}
+
+.send-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Back to Home button positioning */
+.back-button {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    z-index: 1000;
+}
+
+.loading {
+    display: none; /* Initially hidden */
+    text-align: center;
+    padding: 15px;
+    color: var(--accent-gold);
+    font-style: italic;
+    font-size: 1.1rem;
+}
+
+.loading::after {
+    content: '';
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--accent-gold);
+    border-radius: 50%;
+    border-top-color: transparent;
+    animation: spin 1s linear infinite;
+    margin-left: 10px;
+    vertical-align: middle;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding: 10px;
+        height: 100vh;
+        width: 100%;
+        border-radius: 0;
+    }
+
+    .header h1 {
+        font-size: 1.8rem;
+    }
+
+    .message-bubble {
+        max-width: 95%;
+        padding: 15px 20px;
+    }
+
+    .input-wrapper {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .send-button {
+        align-self: stretch;
+    }
+} 

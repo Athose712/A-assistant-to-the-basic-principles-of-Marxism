@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>思政智能助手</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎓 思政智能助手</h1>
+            <p>您的马克思主义理论学习伙伴</p>
+            <a href="/" class="send-button back-button">🔙 返回主页</a>
+        </div>
+
+        <div class="chat-container">
+            <div class="chat-messages" id="chat-box">
+                <div class="welcome-message">
+                    <div class="emoji">📖✨🧠</div>
+                    <p>欢迎使用思政智能助手！</p>
+                    <p>您可以向我提问任何关于马克思主义理论的问题，</p>
+                    <p>或者让我为您生成关于特定主题的知识图谱。</p>
+                </div>
+            </div>
+
+            <div class="loading" id="loading" style="display: none;">
+                <span>助手正在思考中...</span>
+            </div>
+
+            <div class="input-container">
+                <div class="input-wrapper">
+                    <textarea 
+                        id="user-input" 
+                        class="input-field" 
+                        placeholder="例如：请解释一下什么是“剩余价值”？或者：生成关于“唯物辩证法”的知识图谱。"
+                        rows="3"
+                    ></textarea>
+                    <button id="send-btn" class="send-button">
+                        ✉️ 发送
+                    </button>
+                    <button id="reset-btn" class="send-button">
+                        🔄 新对话
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- 锁定版本，避免 mermaid 与 mindmap 插件版本不一致导致渲染失败 -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.0/dist/mermaid.min.js"></script>
+    <!-- mindmap 图需要额外插件（与 mermaid 主版本保持一致）-->
+    <script src="https://cdn.jsdelivr.net/npm/@mermaid-js/mermaid-mindmap@10.9.0/dist/mermaid-mindmap.min.js"></script>
+    <script src="/static/script.js"></script>
+</body>
+</html> 
