@@ -8,7 +8,7 @@ import tempfile
 import base64
 from io import BytesIO
 from PIL import Image
-from role import SocratesAgent
+from role_agent import SocratesAgent
 
 # ---------- Knowledge-Graph Agent 包装 ----------
 # 为了与 QuestionAgent 保持统一的调用接口，
