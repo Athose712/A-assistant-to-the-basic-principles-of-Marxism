@@ -17,4 +17,7 @@ langchain-text-splitters>=0.2.0
 # 其他必要依赖
 numpy>=1.24.0
 typing-extensions>=4.5.0 
-flask 
+flask
+
+# 多模态功能依赖
+Pillow>=9.0.0 

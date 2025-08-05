@@ -1,8 +1,13 @@
 import os
 from flask import Flask, request, jsonify, render_template, redirect, url_for
+from werkzeug.utils import secure_filename
 from mayuan_agent import MayuanQuestionAgent
 from mayuan_kg_agent import MayuanKnowledgeGraphAgent
 import uuid
+import tempfile
+import base64
+from io import BytesIO
+from PIL import Image
 from role import SocratesAgent
 
 # ---------- Knowledge-Graph Agent 包装 ----------
@@ -55,6 +60,45 @@ class MayuanKGAgent(MayuanKnowledgeGraphAgent):
 
 app = Flask(__name__)
 
+# 配置文件上传
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
+app.config['UPLOAD_FOLDER'] = tempfile.gettempdir()
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp'}
+
+def allowed_file(filename):
+    """检查文件类型是否允许"""
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def save_uploaded_image(image_data):
+    """保存base64编码的图片数据并返回文件路径"""
+    try:
+        # 解析base64数据
+        if image_data.startswith('data:image'):
+            header, data = image_data.split(',', 1)
+            image_binary = base64.b64decode(data)
+        else:
+            image_binary = base64.b64decode(image_data)
+        
+        # 创建临时文件
+        temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.jpg')
+        temp_file.write(image_binary)
+        temp_file.close()
+        
+        return temp_file.name
+        
+    except Exception as e:
+        print(f"保存图片失败: {e}")
+        return None
+
+def cleanup_temp_file(file_path):
+    """清理临时文件"""
+    try:
+        if file_path and os.path.exists(file_path):
+            os.unlink(file_path)
+    except Exception as e:
+        print(f"清理临时文件失败: {e}")
+
 # Load Agents
 # It's better to load these once at startup.
 try:
@@ -95,8 +139,17 @@ def chat():
     # 无论 client Content-Type 如何，安全地解析 JSON，避免 request.json 为 None
     data = request.get_json(silent=True) or {}
     user_message = data.get("message")
+    image_data = data.get("image")  # 获取base64编码的图片数据
+    
     if not user_message:
         return jsonify({"error": "No message provided"}), 400
+
+    # 处理图片数据
+    image_path = None
+    if image_data:
+        image_path = save_uploaded_image(image_data)
+        if not image_path:
+            return jsonify({"error": "图片处理失败"}), 400
 
     response_text = ""
     try:
@@ -104,19 +157,34 @@ def chat():
         if any(k in user_message for k in ["知识图谱", "思维导图", "mindmap", "图谱"]):
             if kg_agent:
                 print("Routing to Knowledge Graph Agent.")
-                response_text = kg_agent.process_request(user_message)
+                # 知识图谱Agent暂时不支持图片，如果有图片就提示用户
+                if image_path:
+                    response_text = "知识图谱生成功能暂时不支持图片输入，请使用纯文本描述您需要的知识图谱主题。"
+                else:
+                    response_text = kg_agent.process_request(user_message)
             else:
                 response_text = "知识图谱助手未成功加载，无法处理您的请求。"
         else:
             if question_agent:
                 print("Routing to Question Generation Agent.")
-                response_text = question_agent.process_request(user_message)
+                # 使用多模态功能
+                if hasattr(question_agent, 'process_multimodal_request'):
+                    response_text = question_agent.process_multimodal_request(user_message, image_path)
+                else:
+                    if image_path:
+                        response_text = "当前版本暂时不支持图片分析，请使用纯文本提问。"
+                    else:
+                        response_text = question_agent.process_request(user_message)
             else:
                 response_text = "出题助手未成功加载，无法处理您的请求。"
 
     except Exception as e:
         print(f"An error occurred during processing: {e}")
         response_text = f"处理您的请求时发生内部错误: {e}"
+    finally:
+        # 清理临时图片文件
+        if image_path:
+            cleanup_temp_file(image_path)
 
     return jsonify({"response": response_text})
 
@@ -133,11 +201,27 @@ def start_dialogue():
         return jsonify({"error": "AI助手未正确初始化"}), 500
     data = request.get_json(silent=True) or {}
     user_message = data.get("message", "").strip()
+    image_data = data.get("image")  # 获取base64编码的图片数据
+    
     if not user_message:
         return jsonify({"error": "请输入您想探讨的话题"}), 400
+    
+    # 处理图片数据
+    image_path = None
+    if image_data:
+        image_path = save_uploaded_image(image_data)
+        if not image_path:
+            return jsonify({"error": "图片处理失败"}), 400
+    
     try:
         session_id = str(uuid.uuid4())
-        response_data = socrates_agent.process_dialogue(user_message, None)
+        
+        # 如果有图片，使用多模态对话功能
+        if image_path and hasattr(socrates_agent, 'process_multimodal_dialogue'):
+            response_data = socrates_agent.process_multimodal_dialogue(user_message, None, image_path)
+        else:
+            response_data = socrates_agent.process_dialogue(user_message, None)
+            
         if response_data["status"] == "error":
             return jsonify({"error": response_data["response"]}), 500
         dialogue_sessions[session_id] = response_data["state"]
@@ -151,6 +235,10 @@ def start_dialogue():
     except Exception as e:
         print(f"Error starting dialogue: {e}")
         return jsonify({"error": "内部错误"}), 500
+    finally:
+        # 清理临时图片文件
+        if image_path:
+            cleanup_temp_file(image_path)
 
 @app.route('/continue_dialogue', methods=['POST'])
 def continue_dialogue():
@@ -159,13 +247,29 @@ def continue_dialogue():
     data = request.get_json(silent=True) or {}
     session_id = data.get("session_id")
     user_message = data.get("message", "").strip()
+    image_data = data.get("image")  # 获取base64编码的图片数据
+    
     if not session_id or session_id not in dialogue_sessions:
         return jsonify({"error": "会话已过期，请重新开始对话"}), 400
     if not user_message:
         return jsonify({"error": "请输入您的回应"}), 400
+    
+    # 处理图片数据
+    image_path = None
+    if image_data:
+        image_path = save_uploaded_image(image_data)
+        if not image_path:
+            return jsonify({"error": "图片处理失败"}), 400
+    
     try:
         current_state = dialogue_sessions[session_id]
-        response_data = socrates_agent.process_dialogue(user_message, current_state)
+        
+        # 如果有图片，使用多模态对话功能
+        if image_path and hasattr(socrates_agent, 'process_multimodal_dialogue'):
+            response_data = socrates_agent.process_multimodal_dialogue(user_message, current_state, image_path)
+        else:
+            response_data = socrates_agent.process_dialogue(user_message, current_state)
+            
         if response_data["status"] == "error":
             return jsonify({"error": response_data["response"]}), 500
         dialogue_sessions[session_id] = response_data["state"]
@@ -178,6 +282,10 @@ def continue_dialogue():
     except Exception as e:
         print(f"Error continuing dialogue: {e}")
         return jsonify({"error": "内部错误"}), 500
+    finally:
+        # 清理临时图片文件
+        if image_path:
+            cleanup_temp_file(image_path)
 
 @app.route('/end_dialogue', methods=['POST'])
 def end_dialogue():

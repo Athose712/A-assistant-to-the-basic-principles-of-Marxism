@@ -448,13 +448,31 @@
                     <textarea 
                         id="messageInput" 
                         class="input-field" 
-                        placeholder="例如：我想和马克思探讨一下唯物辩证法，或者让恩格斯谈谈历史唯物主义..."
+                        placeholder="例如：我想和马克思探讨一下唯物辩证法，或者让恩格斯谈谈历史唯物主义...您也可以上传图片进行讨论！"
                         rows="3"
                     ></textarea>
-                    <button id="sendButton" class="send-button">
-                        📝 开始对话
-                    </button>
+                    <div class="button-group">
+                        <button id="imageButton" class="send-button image-button">
+                            📷 添加图片
+                        </button>
+                        <button id="sendButton" class="send-button">
+                            📝 开始对话
+                        </button>
+                    </div>
                 </div>
+                
+                <!-- 隐藏的文件输入 -->
+                <input type="file" id="imageInput" accept="image/*" style="display: none;">
+                
+                <!-- 图片预览区域 -->
+                <div class="image-preview" id="imagePreview" style="display: none;">
+                    <div class="image-preview-header">
+                        <span>📷 已选择图片：</span>
+                        <button id="removeImage" class="remove-image-btn">❌ 移除</button>
+                    </div>
+                    <img id="previewImg" src="" alt="预览图片">
+                </div>
+                
                 <div class="control-buttons">
                     <button id="newDialogueBtn" class="control-btn">🔄 新对话</button>
                     <button id="endDialogueBtn" class="control-btn" style="display: none;">👋 结束对话</button>
@@ -484,6 +502,16 @@
                 this.newDialogueBtn = document.getElementById('newDialogueBtn');
                 this.endDialogueBtn = document.getElementById('endDialogueBtn');
                 this.loadingText = document.getElementById('loadingText');
+                
+                // 多模态功能元素
+                this.imageButton = document.getElementById('imageButton');
+                this.imageInput = document.getElementById('imageInput');
+                this.imagePreview = document.getElementById('imagePreview');
+                this.previewImg = document.getElementById('previewImg');
+                this.removeImage = document.getElementById('removeImage');
+                
+                // 图片相关变量
+                this.selectedImageData = null;
             }
 
             bindEvents() {
@@ -496,22 +524,79 @@
                 });
                 this.newDialogueBtn.addEventListener('click', () => this.startNewDialogue());
                 this.endDialogueBtn.addEventListener('click', () => this.endDialogue());
+                
+                // 图片相关事件监听器
+                this.imageButton.addEventListener('click', () => this.imageInput.click());
+                this.imageInput.addEventListener('change', (e) => this.handleImageSelection(e));
+                this.removeImage.addEventListener('click', () => this.clearSelectedImage());
+                
+                // 拖拽上传支持
+                document.addEventListener('dragover', (e) => e.preventDefault());
+                document.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    const files = e.dataTransfer.files;
+                    if (files.length > 0) {
+                        this.handleImageFile(files[0]);
+                    }
+                });
+            }
+
+            // 图片处理方法
+            clearSelectedImage() {
+                this.selectedImageData = null;
+                this.imagePreview.style.display = 'none';
+                this.previewImg.src = '';
+                this.imageInput.value = '';
+            }
+
+            handleImageSelection(event) {
+                const file = event.target.files[0];
+                if (file) {
+                    this.handleImageFile(file);
+                }
+            }
+
+            handleImageFile(file) {
+                // 检查文件类型
+                if (!file.type.startsWith('image/')) {
+                    alert('请选择图片文件！');
+                    return;
+                }
+                
+                // 检查文件大小（16MB限制）
+                if (file.size > 16 * 1024 * 1024) {
+                    alert('图片文件过大，请选择小于16MB的图片！');
+                    return;
+                }
+                
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    this.selectedImageData = e.target.result;
+                    this.previewImg.src = this.selectedImageData;
+                    this.imagePreview.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
             }
 
             async handleSendMessage() {
                 const message = this.messageInput.value.trim();
-                if (!message) return;
+                if (!message && !this.selectedImageData) {
+                    alert("请输入文本或选择图片！");
+                    return;
+                }
 
-                this.addUserMessage(message);
+                this.addUserMessage(message, this.selectedImageData);
                 this.messageInput.value = '';
+                const imageData = this.selectedImageData; // 保存图片数据
+                this.clearSelectedImage(); // 清除图片预览
                 this.showLoading(true);
                 this.sendButton.disabled = true;
 
                 try {
                     if (!this.isDialogueActive) {
-                        await this.startDialogue(message);
+                        await this.startDialogue(message, imageData);
                     } else {
-                        await this.continueDialogue(message);
+                        await this.continueDialogue(message, imageData);
                     }
                 } catch (error) {
                     this.addErrorMessage(`对话出现错误：${error.message}`);
@@ -521,11 +606,16 @@
                 }
             }
 
-            async startDialogue(message) {
+            async startDialogue(message, imageData = null) {
+                const requestData = { message };
+                if (imageData) {
+                    requestData.image = imageData;
+                }
+                
                 const response = await fetch('/start_dialogue', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message })
+                    body: JSON.stringify(requestData)
                 });
 
                 if (!response.ok) {
@@ -542,14 +632,19 @@
                 this.updateUIForActiveDialogue();
             }
 
-            async continueDialogue(message) {
+            async continueDialogue(message, imageData = null) {
+                const requestData = { 
+                    session_id: this.sessionId,
+                    message 
+                };
+                if (imageData) {
+                    requestData.image = imageData;
+                }
+                
                 const response = await fetch('/continue_dialogue', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        session_id: this.sessionId,
-                        message 
-                    })
+                    body: JSON.stringify(requestData)
                 });
 
                 if (!response.ok) {
@@ -576,12 +671,29 @@
                 this.endDialogueBtn.style.display = 'inline-block';
             }
 
-            addUserMessage(message) {
+            addUserMessage(message, imageData = null) {
                 const messageDiv = document.createElement('div');
                 messageDiv.className = 'message';
+                
+                let messageContent = '';
+                
+                // 如果有图片，先显示图片
+                if (imageData) {
+                    messageContent += `
+                        <img src="${imageData}" 
+                             style="max-width: 200px; max-height: 150px; border-radius: 10px; margin-bottom: 10px; display: block;" 
+                             alt="用户上传的图片">
+                    `;
+                }
+                
+                // 添加文本内容
+                if (message) {
+                    messageContent += this.formatMessage(message);
+                }
+                
                 messageDiv.innerHTML = `
                     <div class="message-bubble user-message">
-                        ${this.formatMessage(message)}
+                        ${messageContent}
                     </div>
                 `;
                 this.chatMessages.appendChild(messageDiv);
@@ -656,6 +768,7 @@
                 await this.endDialogue();
                 this.clearChat();
                 this.resetUI();
+                this.clearSelectedImage(); // 清除选中的图片
             }
 
             async endDialogue() {

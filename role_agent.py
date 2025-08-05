@@ -5,6 +5,7 @@ import uuid
 
 # Import the new base class
 from common_utils.base_dialogue_agent import BaseDialogueAgent, DialogueGraphState
+from common_utils.multimodal_agent import SocratesMultimodalAgent
 
 #  API Key Setup (与之前相同) 
 # 重要：运行前必须设置环境变量
@@ -34,6 +35,85 @@ class SocratesAgent(BaseDialogueAgent):
             llm_model="qwen-max",
             temperature=0.8
         )
+        
+        # 初始化多模态Agent用于图片分析
+        try:
+            self.multimodal_agent = SocratesMultimodalAgent()
+            print("[苏格拉底Agent] 多模态功能初始化成功")
+        except Exception as e:
+            print(f"[苏格拉底Agent] 多模态功能初始化失败: {e}")
+            self.multimodal_agent = None
+    
+    def process_multimodal_dialogue(
+        self, 
+        user_input: str, 
+        current_state: Optional[dict] = None,
+        image_path: Optional[str] = None
+    ) -> dict:
+        """
+        处理多模态对话（支持图片+文本输入）
+        
+        Args:
+            user_input: 用户的文本输入
+            current_state: 当前对话状态
+            image_path: 图片文件路径（可选）
+            
+        Returns:
+            对话处理结果
+        """
+        # 如果没有图片或多模态Agent不可用，使用普通对话处理
+        if not image_path or not self.multimodal_agent:
+            return self.process_dialogue(user_input, current_state)
+        
+        try:
+            # 更新多模态Agent的对话上下文
+            if current_state:
+                character = current_state.get("simulated_character", "马克思")
+                topic = current_state.get("current_topic", "马克思主义理论")
+                self.multimodal_agent.update_dialogue_context(character, topic)
+            
+            # 使用多模态Agent处理图片+文本
+            response = self.multimodal_agent.process_multimodal_request(user_input, image_path)
+            
+            # 如果是新对话，需要初始化状态
+            if not current_state:
+                # 从响应中推断角色和主题（简化处理）
+                character = "马克思"  # 默认角色
+                topic = "马克思主义理论"  # 默认主题
+                
+                new_state = {
+                    "simulated_character": character,
+                    "current_topic": topic,
+                    "turn_count": 1,
+                    "conversation_history": [
+                        {"role": "user", "content": user_input},
+                        {"role": "assistant", "content": response}
+                    ]
+                }
+                
+                return {
+                    "status": "success",
+                    "response": response,
+                    "state": new_state
+                }
+            else:
+                # 更新现有状态
+                current_state["turn_count"] = current_state.get("turn_count", 0) + 1
+                current_state["conversation_history"] = current_state.get("conversation_history", [])
+                current_state["conversation_history"].extend([
+                    {"role": "user", "content": user_input},
+                    {"role": "assistant", "content": response}
+                ])
+                
+                return {
+                    "status": "success",
+                    "response": response,
+                    "state": current_state
+                }
+                
+        except Exception as e:
+            print(f"[苏格拉底Agent] 多模态处理失败，回退到文本模式: {e}")
+            return self.process_dialogue(user_input, current_state)
 
 def main():
     """主程序入口 - 提供命令行交互界面"""

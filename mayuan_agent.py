@@ -2,7 +2,9 @@
 马克思主义基本原理智能出题 Agent
 """
 import os
+from typing import Optional
 from common_utils.base_agent import BaseAgent
+from common_utils.multimodal_agent import MayuanMultimodalAgent
 
 class MayuanQuestionAgent(BaseAgent):
     """
@@ -28,6 +30,36 @@ class MayuanQuestionAgent(BaseAgent):
             common_topics=common_topics,
             vectorstore_path="database_agent_mayuan"
         )
+        
+        # 初始化多模态Agent用于图片分析
+        try:
+            self.multimodal_agent = MayuanMultimodalAgent()
+            print("[马原Agent] 多模态功能初始化成功")
+        except Exception as e:
+            print(f"[马原Agent] 多模态功能初始化失败: {e}")
+            self.multimodal_agent = None
+    
+    def process_multimodal_request(self, text_input: str, image_path: Optional[str] = None) -> str:
+        """
+        处理多模态请求（支持图片+文本输入）
+        
+        Args:
+            text_input: 用户的文本输入
+            image_path: 图片文件路径（可选）
+            
+        Returns:
+            AI的回复
+        """
+        # 如果没有图片或多模态Agent不可用，使用普通文本处理
+        if not image_path or not self.multimodal_agent:
+            return self.process_request(text_input)
+        
+        try:
+            # 使用多模态Agent处理图片+文本
+            return self.multimodal_agent.process_multimodal_request(text_input, image_path)
+        except Exception as e:
+            print(f"[马原Agent] 多模态处理失败，回退到文本模式: {e}")
+            return self.process_request(text_input)
 
 
 def main():

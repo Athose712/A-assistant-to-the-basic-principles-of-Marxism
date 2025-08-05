@@ -34,15 +34,32 @@
                     <textarea 
                         id="user-input" 
                         class="input-field" 
-                        placeholder="例如：请解释一下什么是“剩余价值”？或者：生成关于“唯物辩证法”的知识图谱。"
+                        placeholder="例如：请解释一下什么是"剩余价值"？或者：生成关于"唯物辩证法"的知识图谱。您也可以上传图片让AI分析！"
                         rows="3"
                     ></textarea>
-                    <button id="send-btn" class="send-button">
-                        ✉️ 发送
-                    </button>
-                    <button id="reset-btn" class="send-button">
-                        🔄 新对话
-                    </button>
+                    <div class="button-group">
+                        <button id="image-btn" class="send-button image-button">
+                            📷 添加图片
+                        </button>
+                        <button id="send-btn" class="send-button">
+                            ✉️ 发送
+                        </button>
+                        <button id="reset-btn" class="send-button">
+                            🔄 新对话
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 隐藏的文件输入 -->
+                <input type="file" id="image-input" accept="image/*" style="display: none;">
+                
+                <!-- 图片预览区域 -->
+                <div class="image-preview" id="image-preview" style="display: none;">
+                    <div class="image-preview-header">
+                        <span>📷 已选择图片：</span>
+                        <button id="remove-image" class="remove-image-btn">❌ 移除</button>
+                    </div>
+                    <img id="preview-img" src="" alt="预览图片">
                 </div>
             </div>
         </div>
