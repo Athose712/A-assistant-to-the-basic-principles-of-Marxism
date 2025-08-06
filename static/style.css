@@ -286,4 +286,88 @@ body::before {
     .send-button {
         align-self: stretch;
     }
+}
+
+/* 多模态功能样式 */
+.button-group {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.image-button {
+    background: linear-gradient(135deg, #6a4c93 0%, #9a4c95 100%);
+    color: white;
+    transition: all 0.3s ease;
+}
+
+.image-button:hover {
+    background: linear-gradient(135deg, #7a5ca3 0%, #aa5ca5 100%);
+    transform: translateY(-2px);
+}
+
+.image-preview {
+    margin-top: 15px;
+    padding: 15px;
+    background: var(--secondary-bg);
+    border-radius: 15px;
+    border: 2px solid var(--accent-bronze);
+    box-shadow: var(--shadow);
+}
+
+.image-preview-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    color: var(--accent-gold);
+    font-weight: 600;
+}
+
+.remove-image-btn {
+    background: transparent;
+    border: none;
+    color: #ff6b6b;
+    cursor: pointer;
+    padding: 5px 10px;
+    border-radius: 5px;
+    transition: all 0.3s ease;
+    font-size: 0.9rem;
+}
+
+.remove-image-btn:hover {
+    background: rgba(255, 107, 107, 0.2);
+    transform: scale(1.05);
+}
+
+#preview-img {
+    max-width: 100%;
+    max-height: 200px;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    display: block;
+    margin: 0 auto;
+}
+
+/* 响应式设计调整 */
+@media (max-width: 768px) {
+    .button-group {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .button-group button {
+        width: 100%;
+        margin-bottom: 10px;
+    }
+    
+    .image-preview {
+        margin-top: 10px;
+        padding: 10px;
+    }
+    
+    #preview-img {
+        max-height: 150px;
+    }
 } 
