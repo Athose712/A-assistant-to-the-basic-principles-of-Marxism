@@ -53,6 +53,33 @@
             position: relative;
             z-index: 1;
         }
+
+        /* 说明面板（居中偏下） */
+        .info-panel {
+            max-width: 900px;
+            margin: 60px auto 0;
+            padding: 24px 28px;
+            background: rgba(25,25,46,0.72);
+            border: 2px solid var(--accent-gold);
+            border-radius: 18px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+            text-align: center;
+        }
+        .info-title {
+            font-family: 'Cinzel', serif;
+            font-size: 1.6rem;
+            color: var(--accent-gold);
+            margin-bottom: 10px;
+            letter-spacing: 1px;
+        }
+        .info-text {
+            font-family: 'Crimson Text', serif;
+            font-size: 1.15rem;
+            line-height: 1.9;
+            color: var(--text-light);
+            opacity: 0.95;
+        }
+        .info-text b { color: var(--accent-gold); }
     </style>
 </head>
 <body>
@@ -67,6 +94,15 @@
         <div class="mode-buttons">
             <a href="/chat_ui" class="mode-btn">💬 聊天模式</a>
             <a href="/role" class="mode-btn">🧑‍🏫 角色扮演模式</a>
+        </div>
+
+        <div class="info-panel">
+            <div class="info-title">✨ 使用说明</div>
+            <div class="info-text">
+                ✉️ 在 <b>聊天模式</b> 中，智能助手可为您 <b>出题</b>（按需显示解析）或 <b>生成知识图谱</b>（Mermaid 思维导图）。<br>
+                🎭 在 <b>角色扮演模式</b> 中，您可以与 <b>历史人物</b>（如马克思、恩格斯）进行苏格拉底式对话，他们也能为您 <b>答疑解惑</b>。<br>
+                🖼️ 系统 <b>支持多模态图像输入</b>：可上传图片，与文本共同分析与推理。
+            </div>
         </div>
     </div>
 </body>

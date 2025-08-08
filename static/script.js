@@ -3,6 +3,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const userInput = document.getElementById("user-input");
     const sendBtn = document.getElementById("send-btn");
     const resetBtn = document.getElementById("reset-btn");
+    const endBtn = document.getElementById("end-btn");
     const loading = document.getElementById("loading");
     
     // 多模态功能元素
@@ -39,6 +40,8 @@ document.addEventListener("DOMContentLoaded", () => {
         userInput.value = "";
         // 清除图片
         clearSelectedImage();
+        // 聊天模式没有真实的会话后端状态，这里仅统一按钮表现
+        if (endBtn) endBtn.style.display = 'none';
     };
     
     // 图片处理函数
@@ -190,8 +193,15 @@ document.addEventListener("DOMContentLoaded", () => {
             }, 100);
 
         } else if (type === 'bot') {
-            // 对于不含 Mermaid 的机器人消息，正常使用 marked.js 渲染
-            messageBubble.innerHTML = marked.parse(content);
+            // 尝试将出题文本解析为结构化的题卡
+            const maybeQuiz = tryParseQuiz(content);
+            if (maybeQuiz && maybeQuiz.length > 0) {
+                const quizContainer = renderQuizCards(maybeQuiz);
+                messageBubble.appendChild(quizContainer);
+            } else {
+                // 对于不含 Mermaid 的机器人消息，正常使用 marked.js 渲染
+                messageBubble.innerHTML = marked.parse(content);
+            }
         } else {
             // 用户消息直接作为文本展示
             messageBubble.textContent = content;
@@ -202,8 +212,178 @@ document.addEventListener("DOMContentLoaded", () => {
         chatBox.scrollTop = chatBox.scrollHeight;
     };
 
+    // ------------------ 出题解析：将纯文本解析为题卡 ------------------
+    function tryParseQuiz(text) {
+        // 粗略判定：包含“题目x：/选择题x：/题干：/正确答案：/解析：”等关键字
+        const indicatorRegex = /(题目\s*\d+|选择题\s*\d+|判断题\s*\d+|简答题\s*\d+|题干\s*[:：]|正确答案\s*[:：]|参考答案\s*[:：]|解析\s*[:：])/;
+        if (!indicatorRegex.test(text)) return null;
+
+        const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+        if (lines.length === 0) return null;
+
+        // 找到每道题的起始行索引
+        const titleRegex = /^(?:题目|选择题|判断题|简答题)\s*\d+\s*[:：]?/;
+        const indices = [];
+        for (let i = 0; i < lines.length; i++) {
+            if (titleRegex.test(lines[i])) indices.push(i);
+        }
+        if (indices.length === 0) {
+            // 如果没有显式题号，尝试把整体当作一题处理
+            indices.push(0);
+        }
+        indices.push(lines.length); // 便于切片
+
+        const questions = [];
+        for (let k = 0; k < indices.length - 1; k++) {
+            const start = indices[k];
+            const end = indices[k + 1];
+            const chunk = lines.slice(start, end);
+            if (chunk.length === 0) continue;
+
+            let title = chunk[0].replace(/\s+/g, '');
+            let stem = '';
+            const options = [];
+            let answer = '';
+            let explanation = '';
+
+            const stemRegex = /^题干\s*[:：]\s*(.*)$/;
+            const optionRegex = /^[A-DＡ-Ｄ]\s*[\.．、]\s*(.*)$/; // 兼容全角
+            const answerRegex = /^(?:正确?答案|参考答案)\s*[:：]\s*(.*)$/;
+            const explainRegex = /^(?:解析|答案解析|解答|讲解)\s*[:：]\s*(.*)$/;
+
+            for (let i = 0; i < chunk.length; i++) {
+                const line = chunk[i];
+                // 跳过标题本身
+                if (i === 0 && titleRegex.test(line)) continue;
+
+                let m;
+                if ((m = line.match(stemRegex))) {
+                    stem = m[1];
+                    continue;
+                }
+                if ((m = line.match(optionRegex))) {
+                    const prefixMatch = line.match(/^[A-DＡ-Ｄ]/);
+                    const prefix = prefixMatch ? prefixMatch[0].replace(/[Ａ-Ｄ]/, c => String.fromCharCode(c.charCodeAt(0) - 65248)) : '';
+                    const text = line.replace(/^[A-DＡ-Ｄ]\s*[\.．、]\s*/, '');
+                    options.push(`${prefix}. ${text}`);
+                    continue;
+                }
+                if ((m = line.match(answerRegex))) {
+                    answer = m[1];
+                    continue;
+                }
+                if ((m = line.match(explainRegex))) {
+                    // 解析可能多行，收集到下一条关键线或块末尾
+                    const parts = [m[1]];
+                    for (let j = i + 1; j < chunk.length; j++) {
+                        const nxt = chunk[j];
+                        if (stemRegex.test(nxt) || optionRegex.test(nxt) || answerRegex.test(nxt) || titleRegex.test(nxt)) break;
+                        parts.push(nxt);
+                        i = j; // 前移游标
+                    }
+                    explanation = parts.join('\n');
+                    continue;
+                }
+            }
+
+            // 若未抓到题干，退化为去标题后的首行
+            if (!stem) {
+                stem = chunk.slice(1).find(l => !optionRegex.test(l) && !answerRegex.test(l) && !explainRegex.test(l)) || '';
+            }
+
+            questions.push({ title, stem, options, answer, explanation });
+        }
+
+        return questions;
+    }
+
+    function renderQuizCards(questions) {
+        const container = document.createElement('div');
+        container.className = 'quiz-list';
+
+        questions.forEach((q, idx) => {
+            const card = document.createElement('div');
+            card.className = 'quiz-card';
+
+            const header = document.createElement('div');
+            header.className = 'quiz-header';
+            header.textContent = q.title || `题目${idx + 1}`;
+            card.appendChild(header);
+
+            if (q.stem) {
+                const stem = document.createElement('div');
+                stem.className = 'quiz-stem';
+                stem.textContent = q.stem;
+                card.appendChild(stem);
+            }
+
+            if (q.options && q.options.length > 0) {
+                const optWrap = document.createElement('ul');
+                optWrap.className = 'quiz-options';
+                q.options.forEach(op => {
+                    const li = document.createElement('li');
+                    li.textContent = op;
+                    optWrap.appendChild(li);
+                });
+                card.appendChild(optWrap);
+            }
+
+            const hasAnswer = q.answer && q.answer.trim().length > 0;
+            const hasExplain = q.explanation && q.explanation.trim().length > 0;
+
+            if (hasAnswer || hasExplain) {
+                const actionBar = document.createElement('div');
+                actionBar.className = 'quiz-actions';
+                const toggleBtn = document.createElement('button');
+                toggleBtn.className = 'quiz-toggle-btn';
+                toggleBtn.textContent = '显示解析';
+                actionBar.appendChild(toggleBtn);
+                card.appendChild(actionBar);
+
+                const detail = document.createElement('div');
+                detail.className = 'quiz-detail hidden';
+
+                if (hasAnswer) {
+                    const ans = document.createElement('div');
+                    ans.className = 'quiz-answer';
+                    ans.innerHTML = `<span class="label">正确答案</span><span class="value">${escapeHTML(q.answer)}</span>`;
+                    detail.appendChild(ans);
+                }
+                if (hasExplain) {
+                    const exp = document.createElement('div');
+                    exp.className = 'quiz-explain';
+                    exp.innerHTML = `<span class="label">解析</span><div class="value">${escapeHTML(q.explanation).replace(/\n/g,'<br>')}</div>`;
+                    detail.appendChild(exp);
+                }
+                card.appendChild(detail);
+
+                toggleBtn.addEventListener('click', () => {
+                    const isHidden = detail.classList.contains('hidden');
+                    detail.classList.toggle('hidden');
+                    toggleBtn.textContent = isHidden ? '隐藏解析' : '显示解析';
+                });
+            }
+
+            container.appendChild(card);
+        });
+
+        return container;
+    }
+
+    function escapeHTML(str) {
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
     sendBtn.addEventListener("click", sendMessage);
     resetBtn.addEventListener("click", resetChat);
+    if (endBtn) {
+        endBtn.addEventListener("click", resetChat);
+    }
     userInput.addEventListener("keypress", (e) => {
         if (e.key === "Enter" && !e.shiftKey) {
             e.preventDefault();

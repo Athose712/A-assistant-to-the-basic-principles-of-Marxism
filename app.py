@@ -9,6 +9,7 @@ import base64
 from io import BytesIO
 from PIL import Image
 from role_agent import SocratesAgent
+from dotenv import load_dotenv
 
 # ---------- Knowledge-Graph Agent 包装 ----------
 # 为了与 QuestionAgent 保持统一的调用接口，
@@ -62,7 +63,7 @@ app = Flask(__name__)
 
 # 配置文件上传
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
-app.config['UPLOAD_FOLDER'] = tempfile.gettempdir()
+app.config['UPLOAD_FOLDER'] = os.environ.get('UPLOAD_FOLDER', tempfile.gettempdir())
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp'}
 
 def allowed_file(filename):
@@ -79,6 +80,26 @@ def save_uploaded_image(image_data):
             image_binary = base64.b64decode(data)
         else:
             image_binary = base64.b64decode(image_data)
+        
+        # 验证图像大小（不超过5MB）
+        if len(image_binary) > 5 * 1024 * 1024:
+            print("图片文件过大：超过5MB限制")
+            return None
+        
+        # 使用Pillow打开并验证图像
+        try:
+            img = Image.open(BytesIO(image_binary))
+            img.verify()  # 验证图像完整性
+            
+            # 如果图片分辨率超过 2048px，则提醒但不拒绝，并交由后续流程自适应缩放
+            if img.width > 4096 or img.height > 4096:
+                print("图片分辨率过高：超过 4K 限制，拒绝处理")
+                return None
+            # 在后续步骤（LLM Wrapper）中会根据需要自动缩放到 1024px 内
+            
+        except Exception as e:
+            print(f"无效的图像文件: {e}")
+            return None
         
         # 创建临时文件
         temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.jpg')
@@ -297,6 +318,7 @@ def end_dialogue():
     return jsonify({"message": "会话未找到或已结束"})
 
 def run_app():
+    load_dotenv()  # 加载环境变量
     # Before running, make sure the API key is set if your agents need it.
     if not os.environ.get("DASHSCOPE_API_KEY"):
         print("\n" + "="*50)

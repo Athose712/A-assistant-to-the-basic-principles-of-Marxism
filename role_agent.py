@@ -88,7 +88,8 @@ class SocratesAgent(BaseDialogueAgent):
                     "conversation_history": [
                         {"role": "user", "content": user_input},
                         {"role": "assistant", "content": response}
-                    ]
+                    ],
+                    "last_image_path": image_path if image_path else None  # 添加图像上下文
                 }
                 
                 return {
@@ -104,6 +105,8 @@ class SocratesAgent(BaseDialogueAgent):
                     {"role": "user", "content": user_input},
                     {"role": "assistant", "content": response}
                 ])
+                
+                current_state["last_image_path"] = image_path if image_path else current_state.get("last_image_path")
                 
                 return {
                     "status": "success",

@@ -12,10 +12,15 @@ from langchain_core.messages import (
 )
 from langchain_core.outputs import ChatGeneration, ChatResult
 
+import logging
+
 # Set up API key for DashScope SDK
 api_key = os.environ.get("DASHSCOPE_API_KEY")
 if api_key:
     dashscope.api_key = api_key
+
+# 设置日志
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 
 class CustomChatDashScope(BaseChatModel):
@@ -115,48 +120,89 @@ class CustomVisionChatDashScope(BaseChatModel):
             return base64.b64encode(image_file.read()).decode('utf-8')
 
     def _prepare_multimodal_content(self, text: str, image_path: Optional[str] = None) -> List[dict]:
-        """准备多模态内容，支持文本和图片"""
-        content = []
-        
+        """准备多模态内容，支持文本和图片
+
+        关键改进:
+        1. 动态检测图片 MIME 类型，确保前缀与实际格式一致
+        2. 对过大的图片进行等比缩放到最长边不超过 1024px，避免模型处理失败
+        3. 对任何异常情况降级为仅文本输入而不会直接抛错
+        """
+        content: List[dict] = []
+
+        # 添加文本部分
         if text:
             content.append({"text": text})
-        
-        if image_path:
-            # 对于DashScope Vision API，图片需要以特定格式传入
-            if image_path.startswith('data:image'):
-                # 如果已经是base64格式
-                content.append({"image": image_path})
-            else:
-                # 如果是文件路径，编码为base64
-                try:
-                    encoded_image = self._encode_image_base64(image_path)
-                    content.append({"image": f"data:image/jpeg;base64,{encoded_image}"})
-                except Exception as e:
-                    print(f"Error encoding image: {e}")
-                    content.append({"text": f"[图片加载失败: {str(e)}]"})
-        
+
+        # 如果没有图片，直接返回
+        if not image_path:
+            return content
+
+        # --------------------------------------------------
+        # 处理图片
+        # --------------------------------------------------
+        # 1. data:image;base64 直接透传
+        if image_path.startswith("data:image"):
+            content.append({"image": image_path})
+            return content
+
+        # 2. 本地文件路径，需要进行编码并增加 MIME 前缀
+        try:
+            import mimetypes
+            import io
+            from PIL import Image
+
+            # 检测 MIME 类型，若失败则默认 jpeg
+            mime_type, _ = mimetypes.guess_type(image_path)
+            if mime_type is None:
+                mime_type = "image/jpeg"
+
+            # 打开图片并在必要时缩放
+            with Image.open(image_path) as img:
+                max_dim = 1024  # DashScope 推荐最长边不超过 1024
+                if max(img.size) > max_dim:
+                    ratio = max_dim / float(max(img.size))
+                    new_size = (int(img.width * ratio), int(img.height * ratio))
+                    img = img.resize(new_size)
+
+                buffered = io.BytesIO()
+                # 推断保存格式（JPEG/PNG/WebP/...）
+                save_format = mime_type.split("/")[-1].upper()
+                if save_format == "JPG":
+                    save_format = "JPEG"
+                img.save(buffered, format=save_format)
+                encoded_image = base64.b64encode(buffered.getvalue()).decode("utf-8")
+
+            content.append({"image": f"data:{mime_type};base64,{encoded_image}"})
+        except Exception as e:
+            logging.error(f"Error processing image: {e}")
+            content.append({"text": f"[图片加载失败: {str(e)}]"})
+
         return content
 
     def _call(
         self,
         messages: List[BaseMessage],
         stop: Optional[List[str]] = None,
-        image_path: Optional[str] = None,
+        image_path: Optional[str] = None,  # 现在image_path可以用于任何消息，但我们需要调整逻辑
         **kwargs: Any,
     ) -> AIMessage:
         """调用DashScope Vision API处理多模态输入"""
 
         prompt_messages = []
+        image_added = False  # 跟踪是否已添加图像，以避免重复
+        
         for msg in messages:
             if isinstance(msg, SystemMessage):
                 prompt_messages.append({"role": "system", "content": msg.content})
             elif isinstance(msg, HumanMessage):
-                # 如果有图片，准备多模态内容
-                if image_path and prompt_messages == []:  # 只在第一条用户消息中添加图片
-                    content = self._prepare_multimodal_content(msg.content, image_path)
-                    prompt_messages.append({"role": "user", "content": content})
+                content = msg.content
+                if image_path and not image_added:
+                    # 为带有图像的用户消息准备多模态内容
+                    multimodal_content = self._prepare_multimodal_content(content, image_path)
+                    prompt_messages.append({"role": "user", "content": multimodal_content})
+                    image_added = True
                 else:
-                    prompt_messages.append({"role": "user", "content": msg.content})
+                    prompt_messages.append({"role": "user", "content": content})
             elif isinstance(msg, AIMessage):
                 prompt_messages.append({"role": "assistant", "content": msg.content})
 
@@ -165,6 +211,7 @@ class CustomVisionChatDashScope(BaseChatModel):
                 model=self.model,
                 messages=prompt_messages,
                 temperature=self.temperature,
+                timeout=30,  # 添加超时（秒）
                 **kwargs,
             )
 
@@ -182,8 +229,7 @@ class CustomVisionChatDashScope(BaseChatModel):
                 raise Exception("DashScope Vision API returned unexpected response format")
 
         except Exception as e:
-            # 如果Vision API失败，回退到普通文本模式
-            print(f"Vision API调用失败，回退到文本模式: {e}")
+            logging.error(f"视觉API调用失败: {e}")
             
             # 移除图片内容，只保留文本
             text_messages = []
@@ -203,12 +249,14 @@ class CustomVisionChatDashScope(BaseChatModel):
                 result_format="message",
                 temperature=self.temperature,
                 stream=False,
+                timeout=30,  # 添加超时
                 **kwargs,
             )
             
             if hasattr(response, "status_code") and response.status_code == 200:
                 ai_content = response.output.choices[0]["message"]["content"]
-                return AIMessage(content=f"[注：图片分析功能暂时不可用，以下是基于文本的回复]\n\n{ai_content}")
+                logging.info("回退到文本模式成功")
+                return AIMessage(content=f"[注意：图片分析功能暂时不可用，以下是基于文本的回复]\n\n{ai_content}")
             else:
                 raise Exception("文本模式API调用也失败了")
 

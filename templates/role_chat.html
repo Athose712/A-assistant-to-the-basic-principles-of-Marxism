@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🎓 与历史思想家对话 - 马克思主义智慧殿堂</title>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
     <style>
         :root {
             --primary-bg: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
@@ -458,6 +459,12 @@
                         <button id="sendButton" class="send-button">
                             📝 开始对话
                         </button>
+                        <button id="newDialogueBtn" class="send-button">
+                            🔄 新对话
+                        </button>
+                        <button id="endDialogueBtn" class="send-button" style="display: none;">
+                            👋 结束对话
+                        </button>
                     </div>
                 </div>
                 
@@ -471,11 +478,6 @@
                         <button id="removeImage" class="remove-image-btn">❌ 移除</button>
                     </div>
                     <img id="previewImg" src="" alt="预览图片">
-                </div>
-                
-                <div class="control-buttons">
-                    <button id="newDialogueBtn" class="control-btn">🔄 新对话</button>
-                    <button id="endDialogueBtn" class="control-btn" style="display: none;">👋 结束对话</button>
                 </div>
             </div>
         </div>
