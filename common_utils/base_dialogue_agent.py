@@ -95,6 +95,25 @@ class BaseDialogueAgent:
         self.vectorstore = self._load_knowledge_base()
         self.graph = self._build_graph()
 
+        # Generation controls (can be updated per request)
+        self.generation_kwargs: dict = {}
+        self.retrieval_k: int = 5
+
+    def set_generation_params(self, *, max_tokens: int | None = None, timeout: int | None = None, retrieval_k: int | None = None) -> None:
+        """Update generation and retrieval controls for subsequent calls.
+
+        Args:
+            max_tokens: Upper bound for tokens in a single response.
+            timeout: API timeout in seconds.
+            retrieval_k: Number of retrieved chunks for context.
+        """
+        if max_tokens is not None:
+            self.generation_kwargs["max_tokens"] = max_tokens
+        if timeout is not None:
+            self.generation_kwargs["timeout"] = timeout
+        if retrieval_k is not None and retrieval_k > 0:
+            self.retrieval_k = retrieval_k
+
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
@@ -173,7 +192,7 @@ class BaseDialogueAgent:
 
         try:
             query = f"{state['current_topic']} {self.subject_name} {state['simulated_character']}"
-            docs = self.vectorstore.similarity_search(query, k=5)
+            docs = self.vectorstore.similarity_search(query, k=self.retrieval_k)
             retrieved = list(dict.fromkeys([doc.page_content for doc in docs]))[:5]
             print(f"Retrieved {len(retrieved)} document snippets.")
             return {"retrieved_docs": retrieved, "error_message": None, "dialogue_status": "continue"}
@@ -199,7 +218,7 @@ class BaseDialogueAgent:
             "3. 问题应基于当前对话内容和参考资料，聚焦并促进思考。\n"
             "4. 如果学生回答偏离主题，尝试巧妙引导回主题。\n"
             "5. 当你认为学生对某个概念已经有了足够深入的思考时，可适当总结或提出更高层次的问题。\n"
-            "6. 不要分点回答，回答不超过300字\n\n"
+            "6. 使用简洁的分点与小标题组织语言，突出层次与逻辑，必要处使用**加粗**强调关键词。\n\n"
             "参考资料：\n"
             f"{'   '.join(retrieved_docs)}\n\n"
             "当前对话历史：\n"
@@ -212,7 +231,7 @@ class BaseDialogueAgent:
                 messages.append(AIMessage(content=msg["content"]))
 
         try:
-            response = self.llm.invoke(messages)
+            response = self.llm.invoke(messages, **self.generation_kwargs)
             ai_text = response.content
             new_history = conversation_history + [{"role": "assistant", "content": ai_text}]
             return {

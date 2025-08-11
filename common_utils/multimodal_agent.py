@@ -54,10 +54,20 @@ class MultimodalAgent:
                 system_prompt = self._get_default_system_prompt()
             
             # 调用视觉语言模型
+            # 强化系统提示词，明确“先辨识再分析”的步骤与输出格式，提升鲁棒性与可读性
+            enriched_system_prompt = (
+                system_prompt + "\n\n" +
+                "请使用结构化 Markdown（标题、列表、加粗）组织答案：\n" +
+                "### 图像要点\n- 列出图片中的主要元素/文字/场景\n\n" +
+                "### 分析与推理\n- 结合用户问题逐步分析，解释因果与依据\n\n" +
+                "### 结论与建议\n- 用1-2句加粗给出结论，并提出简短建议\n\n" +
+                "若图片无法读取或不清晰，请明确说明。"
+            ) if system_prompt else None
+
             response = self.vision_llm.call_with_image(
                 text=text_input,
                 image_path=image_path,
-                system_prompt=system_prompt
+                system_prompt=enriched_system_prompt
             )
             
             return response

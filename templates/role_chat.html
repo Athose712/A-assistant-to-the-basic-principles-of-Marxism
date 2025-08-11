@@ -453,6 +453,11 @@
                         rows="3"
                     ></textarea>
                     <div class="button-group">
+                        <select id="responseMode" class="send-button" style="min-width: 160px; padding: 12px 16px;">
+                            <option value="fast">⚡ 快速</option>
+                            <option value="balanced" selected>⚖️ 均衡</option>
+                            <option value="detailed">🧠 深思</option>
+                        </select>
                         <button id="imageButton" class="send-button image-button">
                             📷 添加图片
                         </button>
@@ -511,6 +516,7 @@
                 this.imagePreview = document.getElementById('imagePreview');
                 this.previewImg = document.getElementById('previewImg');
                 this.removeImage = document.getElementById('removeImage');
+                this.responseMode = document.getElementById('responseMode');
                 
                 // 图片相关变量
                 this.selectedImageData = null;
@@ -539,6 +545,23 @@
                     const files = e.dataTransfer.files;
                     if (files.length > 0) {
                         this.handleImageFile(files[0]);
+                    }
+                });
+
+                // 粘贴上传支持
+                document.addEventListener('paste', (e) => {
+                    const items = (e.clipboardData || window.clipboardData).items;
+                    if (!items) return;
+                    for (let i = 0; i < items.length; i++) {
+                        const item = items[i];
+                        if (item && item.type && item.type.startsWith('image/')) {
+                            const file = item.getAsFile();
+                            if (file) {
+                                this.handleImageFile(file);
+                                e.preventDefault();
+                                break;
+                            }
+                        }
                     }
                 });
             }
@@ -610,6 +633,9 @@
 
             async startDialogue(message, imageData = null) {
                 const requestData = { message };
+                if (this.responseMode && this.responseMode.value) {
+                    requestData.response_mode = this.responseMode.value; // fast|balanced|detailed
+                }
                 if (imageData) {
                     requestData.image = imageData;
                 }
@@ -639,6 +665,9 @@
                     session_id: this.sessionId,
                     message 
                 };
+                if (this.responseMode && this.responseMode.value) {
+                    requestData.response_mode = this.responseMode.value;
+                }
                 if (imageData) {
                     requestData.image = imageData;
                 }

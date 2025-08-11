@@ -83,7 +83,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const sendMessage = async () => {
         const query = userInput.value.trim();
-        if (!query) return;
 
         // 检查是否有图片或文本
         if (!query && !selectedImageData) {
@@ -96,6 +95,11 @@ document.addEventListener("DOMContentLoaded", () => {
         
         // 准备发送的数据
         const requestData = { message: query };
+        // 读取可选的响应模式（需在页面新增选择器），决定后端思考时间
+        const modeEl = document.getElementById('response-mode');
+        if (modeEl && modeEl.value) {
+            requestData.response_mode = modeEl.value; // 'fast' | 'balanced' | 'detailed'
+        }
         if (selectedImageData) {
             requestData.image = selectedImageData;
         }
@@ -203,8 +207,12 @@ document.addEventListener("DOMContentLoaded", () => {
                 messageBubble.innerHTML = marked.parse(content);
             }
         } else {
-            // 用户消息直接作为文本展示
-            messageBubble.textContent = content;
+            // 用户消息：保留已添加的图片，不要用 textContent 覆盖子节点
+            if (content) {
+                const textDiv = document.createElement('div');
+                textDiv.textContent = content;
+                messageBubble.appendChild(textDiv);
+            }
         }
 
         messageWrapper.appendChild(messageBubble);
@@ -415,6 +423,23 @@ document.addEventListener("DOMContentLoaded", () => {
         const files = e.dataTransfer.files;
         if (files.length > 0) {
             handleImageSelection(files[0]);
+        }
+    });
+
+    // 复制粘贴上传支持
+    document.addEventListener("paste", (e) => {
+        const items = (e.clipboardData || window.clipboardData).items;
+        if (!items) return;
+        for (let i = 0; i < items.length; i++) {
+            const item = items[i];
+            if (item && item.type && item.type.startsWith('image/')) {
+                const file = item.getAsFile();
+                if (file) {
+                    handleImageSelection(file);
+                    e.preventDefault();
+                    break;
+                }
+            }
         }
     });
 

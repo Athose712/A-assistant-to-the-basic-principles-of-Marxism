@@ -32,6 +32,8 @@ class CustomChatDashScope(BaseChatModel):
 
     model: str = "qwen-turbo"
     temperature: float = 0.7
+    # 默认提升输出长度，避免回答过短
+    max_tokens: Optional[int] = 1200
 
     # ---------------------------------------------------------------------
     # Internal helpers
@@ -54,14 +56,18 @@ class CustomChatDashScope(BaseChatModel):
             elif isinstance(msg, AIMessage):
                 prompt_messages.append({"role": "assistant", "content": msg.content})
 
-        response = dashscope.Generation.call(
+        call_kwargs = dict(
             model=self.model,
             messages=prompt_messages,
             result_format="message",
             temperature=self.temperature,
             stream=False,
-            **kwargs,
         )
+        if self.max_tokens:
+            # DashScope 文档中常用参数名为 max_tokens
+            call_kwargs["max_tokens"] = self.max_tokens
+        call_kwargs.update(kwargs)
+        response = dashscope.Generation.call(**call_kwargs)
 
         # Non-streaming mode -> GenerationResponse with status_code / output
         if hasattr(response, "status_code"):
@@ -113,6 +119,7 @@ class CustomVisionChatDashScope(BaseChatModel):
 
     model: str = "qwen-vl-max"
     temperature: float = 0.7
+    max_tokens: Optional[int] = 1200
 
     def _encode_image_base64(self, image_path: str) -> str:
         """将图片文件编码为base64字符串"""
@@ -162,14 +169,21 @@ class CustomVisionChatDashScope(BaseChatModel):
                 if max(img.size) > max_dim:
                     ratio = max_dim / float(max(img.size))
                     new_size = (int(img.width * ratio), int(img.height * ratio))
-                    img = img.resize(new_size)
+                    img = img.resize(new_size, Image.LANCZOS)
 
                 buffered = io.BytesIO()
                 # 推断保存格式（JPEG/PNG/WebP/...）
                 save_format = mime_type.split("/")[-1].upper()
                 if save_format == "JPG":
                     save_format = "JPEG"
-                img.save(buffered, format=save_format)
+                try:
+                    img.save(buffered, format=save_format)
+                except Exception:
+                    # 某些格式（如 webp 在某些环境不可用）回退到 JPEG
+                    buffered = io.BytesIO()
+                    img = img.convert('RGB')
+                    img.save(buffered, format='JPEG')
+                    mime_type = 'image/jpeg'
                 encoded_image = base64.b64encode(buffered.getvalue()).decode("utf-8")
 
             content.append({"image": f"data:{mime_type};base64,{encoded_image}"})
@@ -207,18 +221,38 @@ class CustomVisionChatDashScope(BaseChatModel):
                 prompt_messages.append({"role": "assistant", "content": msg.content})
 
         try:
-            response = dashscope.MultiModalConversation.call(
+            mm_kwargs = dict(
                 model=self.model,
                 messages=prompt_messages,
                 temperature=self.temperature,
-                timeout=30,  # 添加超时（秒）
-                **kwargs,
+                timeout=30,
             )
+            if self.max_tokens:
+                mm_kwargs["max_tokens"] = self.max_tokens
+            mm_kwargs.update(kwargs)
+            response = dashscope.MultiModalConversation.call(**mm_kwargs)
 
             # 处理API响应
             if hasattr(response, "status_code"):
                 if response.status_code == 200:
                     ai_content = response.output.choices[0]["message"]["content"]
+                    # 一些视觉接口会返回结构化列表（如 [{"text": "..."}]），统一规范化为纯字符串
+                    if isinstance(ai_content, list):
+                        try:
+                            text_parts: List[str] = []
+                            for part in ai_content:
+                                if isinstance(part, dict):
+                                    # 优先取 text 字段；若无，则将值转为字符串
+                                    if "text" in part and isinstance(part["text"], str):
+                                        text_parts.append(part["text"])
+                                    else:
+                                        text_parts.append(str(part))
+                                else:
+                                    text_parts.append(str(part))
+                            ai_content = " ".join([t for t in text_parts if t])
+                        except Exception:
+                            # 兜底：将整体转为字符串，避免下游类型错误
+                            ai_content = str(ai_content)
                     return AIMessage(content=ai_content)
                 else:
                     error_msg = f"DashScope Vision API Error: Code {response.status_code}"
@@ -243,15 +277,18 @@ class CustomVisionChatDashScope(BaseChatModel):
                     text_messages.append(msg_data)
             
             # 使用普通文本API
-            response = dashscope.Generation.call(
+            fallback_kwargs = dict(
                 model="qwen-turbo",
                 messages=text_messages,
                 result_format="message",
                 temperature=self.temperature,
                 stream=False,
-                timeout=30,  # 添加超时
-                **kwargs,
+                timeout=30,
             )
+            if self.max_tokens:
+                fallback_kwargs["max_tokens"] = self.max_tokens
+            fallback_kwargs.update(kwargs)
+            response = dashscope.Generation.call(**fallback_kwargs)
             
             if hasattr(response, "status_code") and response.status_code == 200:
                 ai_content = response.output.choices[0]["message"]["content"]

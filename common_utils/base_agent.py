@@ -86,6 +86,19 @@ class BaseAgent:
         self.vectorstore = self._load_knowledge_base()
         self.graph: Pregel = self._build_graph()
 
+        # Controls that can be tuned per request
+        self.generation_kwargs: dict = {}
+        self.retrieval_k: int = 5
+
+    def set_generation_params(self, *, max_tokens: int | None = None, timeout: int | None = None, retrieval_k: int | None = None) -> None:
+        """Update generation and retrieval controls for subsequent calls."""
+        if max_tokens is not None:
+            self.generation_kwargs["max_tokens"] = max_tokens
+        if timeout is not None:
+            self.generation_kwargs["timeout"] = timeout
+        if retrieval_k is not None and retrieval_k > 0:
+            self.retrieval_k = retrieval_k
+
     def _load_knowledge_base(self) -> Optional[FAISS]:
         """Loads the vector knowledge base from the specified path."""
         try:
@@ -193,7 +206,7 @@ class BaseAgent:
             topic_list = [t.strip() for t in re.split(r"[;；、，]", state["topic"]) if t.strip()]
             retrieved_docs = []
             for tp in topic_list:
-                docs = self.vectorstore.similarity_search(f"{tp} {self.subject_name}", k=3)
+                docs = self.vectorstore.similarity_search(f"{tp} {self.subject_name}", k=self.retrieval_k)
                 retrieved_docs.extend([doc.page_content for doc in docs])
             
             unique_docs = list(dict.fromkeys(retrieved_docs))[:5]
@@ -240,7 +253,7 @@ class BaseAgent:
                 SystemMessage(content=f"你是一位专业的{self.subject_name}课程教师，擅长出题和教学。"),
                 HumanMessage(content=prompt)
             ]
-            response = self.llm.invoke(messages)
+            response = self.llm.invoke(messages, **getattr(self, 'generation_kwargs', {}))
             
             print(f"[{self.subject_name}] Question generation complete.")
             return {"generated_questions": response.content, "error_message": None}
